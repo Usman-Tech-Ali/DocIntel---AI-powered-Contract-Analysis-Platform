@@ -1,3 +1,65 @@
-# Docker Compose configuration for DocIntel
-# Add service definitions here
+version: '3.8'
 
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+    networks:
+      - docintel-network
+
+  backend:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - WORKER_URL=http://worker:8000
+      - MONGODB_URL=mongodb://mongo:27017/docintel
+    depends_on:
+      - worker
+      - mongo
+    networks:
+      - docintel-network
+
+  worker:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.worker
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=AIzaSyANJlO5hvRwST0ta4Tj8mHKj6EZ9Y1DRvg
+      - GEMINI_MODEL=gemini-2.0-flash
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MONGODB_URL=mongodb://mongo:27017/docintel
+    volumes:
+      - worker-uploads:/app/uploads
+    networks:
+      - docintel-network
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - docintel-network
+
+networks:
+  docintel-network:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  worker-uploads:

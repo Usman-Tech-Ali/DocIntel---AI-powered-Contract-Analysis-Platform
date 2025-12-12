@@ -1,0 +1,65 @@
+FREELANCE SERVICE AGREEMENT
+
+This Agreement is entered into as of December 1, 2025, between:
+
+CLIENT: TechStart Inc., a Delaware corporation ("Client")
+CONTRACTOR: Jane Smith, an independent contractor ("Contractor")
+
+1. SCOPE OF WORK
+The Contractor agrees to provide the following services:
+- Design and develop a responsive company website
+- Integrate Stripe payment processing system
+- Create mobile-responsive layouts for all pages
+- Set up basic SEO optimization
+- Provide documentation for content management
+
+2. PAYMENT TERMS
+Total Project Fee: $8,500 USD
+Payment Schedule:
+- 30% ($2,550) upon signing this Agreement
+- 40% ($3,400) upon completion of design mockups
+- 30% ($2,550) upon final delivery and acceptance
+
+Late Payment: Payments not received within 15 days of invoice shall incur a 1.5% monthly late fee.
+
+3. TIMELINE
+Project Start Date: December 15, 2025
+Estimated Completion: February 15, 2026
+Milestones will be agreed upon in writing within 5 business days of signing.
+
+4. REVISIONS
+The Contractor will provide unlimited revisions until the Client is satisfied with the deliverables.
+
+5. INTELLECTUAL PROPERTY
+All work product, including designs, code, and documentation, shall become the exclusive property of the Client upon full payment of all fees.
+
+6. TERMINATION
+Either party may terminate this Agreement with 14 days written notice.
+The Client may terminate at any time without penalty.
+Upon termination, Client shall pay for all work completed to date.
+
+7. CONFIDENTIALITY
+The Contractor agrees to keep all Client information confidential for a period of 2 years following the completion or termination of this Agreement.
+
+8. LIABILITY
+The Contractor's liability under this Agreement shall be unlimited.
+
+9. NON-COMPETE
+The Contractor agrees not to work with any direct competitors of the Client for a period of 2 years following the completion of this Agreement.
+
+10. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of California.
+Any disputes shall be resolved through binding arbitration in San Francisco, California.
+
+SIGNATURES:
+
+TechStart Inc.
+By: _______________________
+Name: John Doe
+Title: CEO
+Date: _______________________
+
+Contractor:
+_______________________
+Jane Smith
+Date: _______________________

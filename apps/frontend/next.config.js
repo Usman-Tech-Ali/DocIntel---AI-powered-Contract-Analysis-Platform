@@ -1,8 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  transpilePackages: ['@docintel/ui', '@docintel/types', '@docintel/utils', '@docintel/config'],
+  images: {
+    domains: ['localhost'],
+    unoptimized: true,
+  },
+  reactStrictMode: false,
 };
 
 module.exports = nextConfig;
-

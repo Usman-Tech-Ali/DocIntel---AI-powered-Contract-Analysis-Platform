@@ -1,0 +1,91 @@
+EMPLOYMENT AGREEMENT
+
+This Employment Agreement ("Agreement") is made effective as of January 1, 2026, by and between:
+
+EMPLOYER: Global Tech Solutions Inc. ("Company")
+Address: 1000 Corporate Boulevard, Suite 500, New York, NY 10001
+
+EMPLOYEE: David Williams ("Employee")
+Address: 456 Park Avenue, Apt 12B, New York, NY 10022
+
+1. POSITION AND DUTIES
+The Company hereby employs the Employee as Senior Software Engineer.
+The Employee shall report to the VP of Engineering and perform duties including:
+- Lead development of core platform features
+- Mentor junior developers
+- Participate in architectural decisions
+- Conduct code reviews
+- Collaborate with product and design teams
+
+2. COMPENSATION
+Base Salary: $165,000 per year, paid bi-weekly
+Signing Bonus: $15,000, payable within 30 days of start date
+Annual Bonus: Up to 20% of base salary, based on performance
+
+3. BENEFITS
+The Employee shall be entitled to:
+- Health, dental, and vision insurance (Company pays 80% of premiums)
+- 401(k) retirement plan with 4% company match
+- 20 days paid time off per year
+- 10 paid holidays
+- Life insurance (2x annual salary)
+- Professional development budget: $3,000/year
+
+4. EQUITY
+Stock Options: 10,000 shares of Company common stock
+Vesting Schedule: 4-year vesting with 1-year cliff
+Exercise Price: Fair market value at grant date
+
+5. WORK LOCATION
+Primary Location: Company headquarters in New York, NY
+Remote Work: Hybrid schedule (3 days in office, 2 days remote)
+
+6. TERM OF EMPLOYMENT
+This is an at-will employment agreement. Either party may terminate the employment relationship at any time, with or without cause, upon 2 weeks written notice.
+
+7. SEVERANCE
+If the Company terminates the Employee without cause:
+- 3 months base salary continuation
+- COBRA coverage for 3 months
+- Accelerated vesting of 25% of unvested options
+
+8. CONFIDENTIALITY
+The Employee agrees to maintain the confidentiality of all proprietary information during and after employment. This obligation survives termination indefinitely.
+
+9. INTELLECTUAL PROPERTY
+All inventions, discoveries, and work product created during employment shall be the exclusive property of the Company. The Employee hereby assigns all rights to such intellectual property to the Company.
+
+10. NON-COMPETE
+The Employee agrees not to work for any direct competitor of the Company for a period of 12 months following termination of employment, within a 50-mile radius of any Company office.
+
+11. NON-SOLICITATION
+For 18 months following termination, the Employee shall not:
+- Solicit any Company employees to leave their employment
+- Solicit any Company customers or clients
+
+12. DISPUTE RESOLUTION
+Any disputes arising under this Agreement shall be resolved through binding arbitration in New York, NY, in accordance with the rules of the American Arbitration Association.
+
+13. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of New York.
+
+14. ENTIRE AGREEMENT
+This Agreement constitutes the entire agreement between the parties and supersedes all prior negotiations, representations, and agreements.
+
+15. AMENDMENTS
+This Agreement may only be modified by a written amendment signed by both parties.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+GLOBAL TECH SOLUTIONS INC.
+
+By: _______________________
+Name: Jennifer Martinez
+Title: Chief People Officer
+Date: _______________________
+
+EMPLOYEE
+
+_______________________
+David Williams
+Date: _______________________

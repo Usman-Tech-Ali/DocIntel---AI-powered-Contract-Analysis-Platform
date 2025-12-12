@@ -1,0 +1,75 @@
+NON-DISCLOSURE AGREEMENT (NDA)
+
+This Non-Disclosure Agreement ("Agreement") is entered into as of December 10, 2025, by and between:
+
+DISCLOSING PARTY: Innovate Labs LLC ("Company")
+Address: 500 Innovation Drive, Austin, TX 78701
+
+RECEIVING PARTY: Michael Johnson ("Recipient")
+Address: 123 Main Street, Austin, TX 78702
+
+RECITALS
+The Company possesses certain confidential and proprietary information relating to its business operations, technology, and strategic plans. The Recipient desires to receive such information for the purpose of evaluating a potential business relationship.
+
+1. DEFINITION OF CONFIDENTIAL INFORMATION
+"Confidential Information" means any and all information disclosed by the Company to the Recipient, including but not limited to:
+- Trade secrets and proprietary technology
+- Business plans and strategies
+- Customer lists and data
+- Financial information and projections
+- Product designs and specifications
+- Marketing strategies and materials
+- Employee information
+
+2. OBLIGATIONS OF RECEIVING PARTY
+The Recipient agrees to:
+a) Hold all Confidential Information in strict confidence
+b) Not disclose any Confidential Information to third parties without prior written consent
+c) Use Confidential Information solely for the Purpose stated herein
+d) Take reasonable measures to protect the confidentiality of the information
+e) Notify the Company immediately upon discovery of any unauthorized disclosure
+
+3. EXCLUSIONS
+This Agreement does not apply to information that:
+a) Is or becomes publicly available through no fault of the Recipient
+b) Was rightfully in the Recipient's possession prior to disclosure
+c) Is independently developed by the Recipient without use of Confidential Information
+d) Is rightfully obtained from a third party without restriction
+
+4. TERM
+This Agreement shall remain in effect for a period of 5 years from the date of execution.
+The confidentiality obligations shall survive termination for an additional 3 years.
+
+5. RETURN OF MATERIALS
+Upon termination or request by the Company, the Recipient shall promptly return or destroy all Confidential Information and any copies thereof.
+
+6. NO LICENSE
+Nothing in this Agreement grants the Recipient any rights to the Company's intellectual property or Confidential Information beyond the limited purpose stated herein.
+
+7. REMEDIES
+The Recipient acknowledges that any breach of this Agreement may cause irreparable harm to the Company. The Company shall be entitled to seek injunctive relief in addition to any other remedies available at law or in equity.
+
+8. GOVERNING LAW
+This Agreement shall be governed by the laws of the State of Texas.
+Any disputes shall be resolved in the state or federal courts located in Travis County, Texas.
+
+9. ENTIRE AGREEMENT
+This Agreement constitutes the entire agreement between the parties concerning the subject matter hereof and supersedes all prior agreements and understandings.
+
+10. AMENDMENTS
+This Agreement may only be amended by a written instrument signed by both parties.
+
+IN WITNESS WHEREOF, the parties have executed this Agreement as of the date first written above.
+
+INNOVATE LABS LLC
+
+By: _______________________
+Name: Sarah Chen
+Title: General Counsel
+Date: _______________________
+
+RECIPIENT
+
+_______________________
+Michael Johnson
+Date: _______________________

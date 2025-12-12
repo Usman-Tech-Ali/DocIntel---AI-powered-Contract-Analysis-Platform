@@ -1,457 +1,230 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  Search,
-  Bell,
-  Sun,
-  Moon,
-  Info,
-  LayoutDashboard,
-  FileText,
-  History,
-  User,
-  LogOut,
-  Upload,
-  TrendingUp,
-  Shield,
-  BarChart3,
-  DollarSign,
-  Files,
-  Edit,
-  ArrowRight,
-  ChevronDown,
-  Grid3x3,
-} from "lucide-react";
+import { FileText, Plus, ArrowUpRight, Clock, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useTheme } from "@/components/theme-provider";
-import { cn } from "@/lib/utils";
+import { listDocuments } from "@/lib/api";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  ResponsiveContainer,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+interface DocumentSummary {
+  id: string;
+  fileName: string;
+  status: string;
+  uploadedAt: string;
+  riskLevel?: "green" | "yellow" | "red";
+  riskScore?: number;
+}
 
 export default function DashboardPage() {
-  const { theme, toggleTheme } = useTheme();
-  const [selectedPeriod, setSelectedPeriod] = useState("Monthly");
+  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadDocuments();
+  }, []);
+
+  const loadDocuments = async () => {
+    try {
+      const docs = await listDocuments();
+      setDocuments(docs);
+    } catch (error) {
+      console.error("Failed to load documents:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const stats = {
+    total: documents.length,
+    analyzed: documents.filter((d) => d.status === "analyzed").length,
+    highRisk: documents.filter((d) => d.riskLevel === "red").length,
+    safe: documents.filter((d) => d.riskLevel === "green").length,
+  };
+
+  const activityData = [
+    { name: "Mon", value: 2 },
+    { name: "Tue", value: 5 },
+    { name: "Wed", value: 3 },
+    { name: "Thu", value: 8 },
+    { name: "Fri", value: 4 },
+    { name: "Sat", value: 1 },
+    { name: "Sun", value: 6 },
+  ];
+
+  const riskDistribution = [
+    { name: "Low Risk", value: stats.safe || 1, color: "#18181b" },
+    { name: "Medium Risk", value: Math.max(stats.total - stats.safe - stats.highRisk, 1), color: "#71717a" },
+    { name: "High Risk", value: stats.highRisk || 1, color: "#d4d4d8" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-cyan-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex transition-colors duration-300">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col shadow-sm transition-colors duration-300">
-        {/* Logo */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10">
-              <Image
-                src="/logo 2.png"
-                alt="DocIntel Logo"
-                fill
-                className="object-contain rounded-lg"
-                priority
-              />
-            </div>
-            <span className="text-xl font-bold text-slate-900 dark:text-white">docintel</span>
-          </div>
-        </div>
-
-        {/* Upload Button */}
-        <div className="p-4">
-          <Button className="w-full bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shadow-md">
-            <Upload className="w-4 h-4 mr-2" />
-            Upload Document
-          </Button>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-2">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-[hsl(var(--primary))] dark:text-blue-400 font-medium transition-colors"
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            Dashboard
-          </Link>
-          <Link
-            href="/documents"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-          >
-            <FileText className="w-5 h-5" />
-            My Documents
-          </Link>
-          <Link
-            href="/history"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-          >
-            <History className="w-5 h-5" />
-            History
-          </Link>
-          <Link
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-          >
-            <User className="w-5 h-5" />
-            Profile
-          </Link>
-          <Link
-            href="/sign-in"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
-          >
-            <LogOut className="w-5 h-5" />
-            Log Out
-          </Link>
-        </nav>
-
-        {/* Upgrade to PRO */}
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 rounded-xl p-4 text-white shadow-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                <Shield className="w-5 h-5" />
-              </div>
-            </div>
-            <p className="text-sm font-semibold mb-1">Upgrade to PRO</p>
-            <p className="text-xs opacity-90 mb-3">
-              to get access to all features! Connect with Venus World!
-            </p>
-            <Button
-              size="sm"
-              variant="secondary"
-              className="w-full bg-white text-[hsl(var(--primary))] hover:bg-white/90 font-medium"
-            >
-              Upgrade Now
-            </Button>
-          </div>
-        </div>
-      </aside>
-
+    <div className="min-h-screen bg-background flex">
+      {/* Fixed Sidebar */}
+      <div className="fixed left-0 top-0 h-screen z-50">
+        <Sidebar />
+      </div>
+      
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 shadow-sm transition-colors duration-300">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Dashboard</h1>
-            <div className="flex items-center gap-4">
-              {/* Search */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
-                <Input
-                  type="search"
-                  placeholder="Search"
-                  className="pl-10 w-64 border-slate-200 dark:border-slate-700 dark:bg-slate-700 dark:text-white focus:border-[hsl(var(--primary))]"
-                />
-              </div>
-              {/* Icons */}
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Bell className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              </button>
-              <button
-                onClick={toggleTheme}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-5 h-5 text-slate-600 dark:text-yellow-400" />
-                ) : (
-                  <Moon className="w-5 h-5 text-slate-600" />
-                )}
-              </button>
-              <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                <Info className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-              </button>
-              {/* Profile */}
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-semibold shadow-md">
-                JD
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 p-6 overflow-y-auto">
-          {/* Breadcrumbs */}
-          <div className="mb-6">
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Pages / <span className="text-slate-900 dark:text-white font-medium">Dashboard</span>
-            </p>
-            <h2 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">Dashboard</h2>
+      <div className="flex-1 flex flex-col ml-56">
+        <div className="sticky top-0 z-40">
+          <Header title="Dashboard" />
+        </div>
+        <main className="flex-1 p-6 overflow-auto">
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "Total Documents", value: stats.total, change: "+12%" },
+              { label: "Analyzed", value: stats.analyzed, change: "+8%" },
+              { label: "High Risk", value: stats.highRisk, change: "-2%" },
+              { label: "Low Risk", value: stats.safe, change: "+15%" },
+            ].map((stat, i) => (
+              <Card key={i} className="border">
+                <CardContent className="p-5">
+                  <p className="text-sm text-muted-foreground mb-1">{stat.label}</p>
+                  <div className="flex items-end justify-between">
+                    <span className="text-3xl font-semibold">{stat.value}</span>
+                    <span className="text-xs text-muted-foreground">{stat.change}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          {/* Widgets Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {/* Daily Traffic */}
-            <Card className="lg:col-span-1 border-slate-200 dark:border-slate-700 dark:bg-slate-800 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Daily Traffic
-                </CardTitle>
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <Card className="col-span-2 border">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium">Analysis Activity</CardTitle>
+                  <Button variant="ghost" size="sm" className="h-8 text-xs">This Week</Button>
+                </div>
               </CardHeader>
-              <CardContent>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-3xl font-bold text-slate-900 dark:text-white">2.579</span>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Visitors</span>
+              <CardContent className="pt-0">
+                <div className="h-[200px] w-full min-w-[200px]">
+                  <ResponsiveContainer width="100%" height={200} minWidth={200}>
+                    <AreaChart data={activityData}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#18181b" stopOpacity={0.1} />
+                          <stop offset="95%" stopColor="#18181b" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#71717a' }} />
+                      <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e4e4e7', borderRadius: '8px', fontSize: '12px' }} />
+                      <Area type="monotone" dataKey="value" stroke="#18181b" strokeWidth={2} fill="url(#colorValue)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="flex items-center gap-2 mb-4">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-green-500">+2.45%</span>
+              </CardContent>
+            </Card>
+
+            <Card className="border">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Risk Distribution</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="h-[140px] w-full min-w-[140px] flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height={140} minWidth={140}>
+                    <PieChart>
+                      <Pie data={riskDistribution} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
+                        {riskDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                {/* Bar Chart */}
-                <div className="h-32 flex items-end gap-2">
-                  {[65, 45, 80, 55, 70, 90].map((height, i) => (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className="w-full rounded-t transition-all hover:opacity-80"
-                        style={{
-                          height: `${height}%`,
-                          background: "linear-gradient(to top, #3b82f6, #06b6d4)",
-                        }}
-                      />
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {["00", "04", "08", "12", "16", "18"][i]}
-                      </span>
+                <div className="flex justify-center gap-4 mt-2">
+                  {riskDistribution.map((item, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-xs text-muted-foreground">{item.name}</span>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            {/* Pie Chart */}
-            <Card className="lg:col-span-1 border-slate-200 dark:border-slate-700 dark:bg-slate-800 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Your Pie Chart
-                </CardTitle>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1 bg-white dark:bg-slate-700 dark:text-white focus:border-[hsl(var(--primary))] focus:outline-none"
-                >
-                  <option>Monthly</option>
-                  <option>Weekly</option>
-                  <option>Daily</option>
-                </select>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-center">
-                  {/* Pie Chart SVG */}
-                  <svg width="200" height="200" viewBox="0 0 200 200" className="mb-4">
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="80"
-                      fill="none"
-                      stroke="#1e40af"
-                      strokeWidth="40"
-                      strokeDasharray={`${67 * 2 * Math.PI * 0.8} ${100 * 2 * Math.PI * 0.8}`}
-                      strokeDashoffset="0"
-                      transform="rotate(-90 100 100)"
-                    />
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="80"
-                      fill="none"
-                      stroke="#60a5fa"
-                      strokeWidth="40"
-                      strokeDasharray={`${20 * 2 * Math.PI * 0.8} ${100 * 2 * Math.PI * 0.8}`}
-                      strokeDashoffset={`-${67 * 2 * Math.PI * 0.8}`}
-                      transform="rotate(-90 100 100)"
-                    />
-                    <circle
-                      cx="100"
-                      cy="100"
-                      r="80"
-                      fill="none"
-                      stroke={theme === "dark" ? "#475569" : "#e2e8f0"}
-                      strokeWidth="40"
-                      strokeDasharray={`${13 * 2 * Math.PI * 0.8} ${100 * 2 * Math.PI * 0.8}`}
-                      strokeDashoffset={`-${87 * 2 * Math.PI * 0.8}`}
-                      transform="rotate(-90 100 100)"
-                    />
-                  </svg>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-800" />
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Risk</span>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white">67%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-blue-400" />
-                      <span className="text-sm text-slate-600 dark:text-slate-300">Minor Risk</span>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white">20%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600" />
-                      <span className="text-sm text-slate-600 dark:text-slate-300">No Risk</span>
-                    </div>
-                    <span className="text-sm font-semibold text-slate-900 dark:text-white">13%</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Document Safety */}
-            <Card className="lg:col-span-1 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border-blue-200 dark:border-blue-800 shadow-sm">
+          <div className="grid grid-cols-3 gap-4">
+            <Card className="border bg-primary text-primary-foreground">
               <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                    <Shield className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                    Wanna know more about safety of your documents?
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 mb-4">
-                    Discover our system's security, with one tap.
-                  </p>
-                  <Button className="bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shadow-md">
-                    Learn More
+                <div className="mb-4">
+                  <h3 className="font-semibold mb-1">Upload Contract</h3>
+                  <p className="text-sm opacity-70">Get instant AI analysis with risk scores.</p>
+                </div>
+                <Link href="/documents/new">
+                  <Button variant="secondary" size="sm" className="w-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Analysis
                   </Button>
-                </div>
+                </Link>
               </CardContent>
             </Card>
 
-            {/* Tokens and Balance */}
-            <Card className="lg:col-span-1 border-slate-200 dark:border-slate-700 dark:bg-slate-800 shadow-sm">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                  Tokens & Balance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-100 dark:border-blue-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center shadow-sm">
-                      <BarChart3 className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">Monthly Tokens</p>
-                      <p className="text-xl font-bold text-slate-900 dark:text-white">400</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-cyan-50 dark:bg-cyan-900/30 rounded-lg border border-cyan-100 dark:border-cyan-800">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-cyan-500 rounded-lg flex items-center justify-center shadow-sm">
-                      <DollarSign className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">Tokens Consumed</p>
-                      <p className="text-xl font-bold text-slate-900 dark:text-white">150</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-400 dark:bg-slate-600 rounded-lg flex items-center justify-center shadow-sm">
-                      <span className="text-white text-sm font-bold">$</span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-600 dark:text-slate-300">Your balance</p>
-                      <p className="text-xl font-bold text-slate-900 dark:text-white">$10</p>
-                    </div>
-                  </div>
-                  <ChevronDown className="w-5 h-5 text-slate-400 dark:text-slate-500" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Total Documents */}
-            <Card className="lg:col-span-1 xl:col-span-2 border-slate-200 dark:border-slate-700 dark:bg-slate-800 shadow-sm">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[hsl(var(--primary))] rounded-lg flex items-center justify-center shadow-sm">
-                    <Files className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                      Total Documents
-                    </CardTitle>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-white">13</p>
-                  </div>
+            <Card className="col-span-2 border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium">Recent Documents</CardTitle>
+                  <Link href="/documents">
+                    <Button variant="ghost" size="sm" className="h-8 text-xs gap-1">
+                      View All <ArrowUpRight className="h-3 w-3" />
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Document 1 */}
-                  <div className="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
-                      PH
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900 dark:text-white">
-                        Pt Holmes Stakes Agreement
-                      </p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Document #1 See document details
-                      </p>
-                    </div>
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors">
-                      <Edit className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </button>
+              <CardContent className="pt-0">
+                {documents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FileText className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+                    <p className="text-sm text-muted-foreground">No documents yet</p>
                   </div>
-                  {/* Document 2 */}
-                  <div className="flex items-center gap-4 p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                    <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-teal-500 rounded-lg flex items-center justify-center text-white font-bold shadow-sm">
-                      JC
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-slate-900 dark:text-white">
-                        Jimmy Carter Insurance Claim
-                      </p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">
-                        Document #2 See document details
-                      </p>
-                    </div>
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg transition-colors">
-                      <Edit className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </button>
+                ) : (
+                  <div className="space-y-1">
+                    {documents.slice(0, 4).map((doc) => (
+                      <Link key={doc.id} href={`/documents/${doc.id}`}>
+                        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/50 transition-colors group">
+                          <div className="flex items-center gap-3">
+                            <div className="h-9 w-9 rounded-lg bg-secondary flex items-center justify-center">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium">{doc.fileName}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(doc.uploadedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {doc.riskScore !== undefined && (
+                              <span className="text-xs font-medium px-2 py-1 rounded bg-secondary">{doc.riskScore}/100</span>
+                            )}
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
                   </div>
-                </div>
-                <Button className="w-full mt-4 bg-[hsl(var(--primary))] hover:bg-[hsl(var(--primary))]/90 text-white shadow-md">
-                  View Documents
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
+                )}
               </CardContent>
             </Card>
           </div>
-
-          {/* Footer */}
-          <footer className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                © 2025 Docintel. All Rights Reserved. Made with love by{" "}
-                <span className="text-[hsl(var(--primary))] font-medium">Dawood!</span>
-              </p>
-              <div className="flex items-center gap-6">
-                <Link
-                  href="#"
-                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                >
-                  Marketplace
-                </Link>
-                <Link
-                  href="#"
-                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                >
-                  License
-                </Link>
-                <Link
-                  href="#"
-                  className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                >
-                  Terms of Use
-                </Link>
-                <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">
-                  <Grid3x3 className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                </button>
-              </div>
-            </div>
-          </footer>
         </main>
       </div>
     </div>
