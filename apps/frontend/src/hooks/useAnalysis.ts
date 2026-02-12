@@ -8,6 +8,7 @@ import {
   chatWithDocument,
   fixClause,
   downloadReport,
+  downloadCorrectedContract,
   Analysis,
   ChatResponse,
   ClauseFix
@@ -152,6 +153,28 @@ export function useAnalysis() {
     }
   }, [documentId]);
 
+  const downloadCorrected = useCallback(async (fixes?: any[]) => {
+    if (!documentId) {
+      setError('No document selected');
+      return;
+    }
+
+    try {
+      const blob = await downloadCorrectedContract(documentId, fixes);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `corrected-contract-${documentId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      setError(err.message || 'Failed to download corrected contract');
+      throw err;
+    }
+  }, [documentId]);
+
   const clearChat = useCallback(() => {
     setChatHistory([]);
   }, []);
@@ -180,6 +203,7 @@ export function useAnalysis() {
     chat,
     fix,
     downloadPdf,
+    downloadCorrected,
     clearChat,
     reset
   };
