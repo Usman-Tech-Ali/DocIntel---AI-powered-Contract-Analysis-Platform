@@ -1,0 +1,538 @@
+================================================================================
+                    DOCINTEL - AI ARCHITECTURE DOCUMENTATION
+                    AI-Powered Contract Analysis Platform
+================================================================================
+
+================================================================================
+1. AI MODEL USED
+================================================================================
+
+Model: Google Gemini (gemma-3-4b-it)
+- A lightweight, fast model from Google's Gemini family
+- Accessed via REST API calls to Google's Generative Language API
+- Base URL: https://generativelanguage.googleapis.com/v1beta
+
+Why this model:
+- Fast response times
+- Good at structured JSON output
+- Handles legal text analysis well
+- Lower rate limits than larger models (gemini-2.5-flash was rate limited)
+
+================================================================================
+2. SYSTEM ARCHITECTURE OVERVIEW
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────┐
+│                         FRONTEND (Next.js)                       │
+│                    Upload → View → Chat → Export                 │
+└─────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      BACKEND (Express.js)                        │
+│                    API Gateway / Proxy Layer                     │
+└─────────────────────────────────────────────────────────────────┘
+                                  │
+                                  ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    AI WORKER (Python/FastAPI)                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  AGENT ORCHESTRATOR                       │   │
+│  │  Coordinates multi-agent workflow for analysis            │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│           │              │              │              │         │
+│           ▼              ▼              ▼              ▼         │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐ │
+│  │ Ingestion  │  │  Clause    │  │   Risk     │  │ Explainer  │ │
+│  │   Agent    │  │ Extractor  │  │  Engine    │  │   Agent    │ │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘ │
+│           │              │              │              │         │
+│           └──────────────┴──────────────┴──────────────┘         │
+│                                  │                               │
+│                                  ▼                               │
+│                    ┌─────────────────────────┐                   │
+│                    │    GEMINI API CLIENT    │                   │
+│                    │   (gemma-3-4b-it model) │                   │
+│                    └─────────────────────────┘                   │
+└─────────────────────────────────────────────────────────────────┘
+
+================================================================================
+3. DOCUMENT PROCESSING PIPELINE (NO AI - TEXT EXTRACTION)
+================================================================================
+
+File: apps/worker/src/ocr/document_ingestion.py
+
+This step does NOT use AI - it's pure text extraction:
+
+┌─────────────────┬────────────────────────────────────────────────┐
+│ File Type       │ Extraction Method                              │
+├─────────────────┼────────────────────────────────────────────────┤
+│ PDF             │ PyMuPDF (fitz) extracts text directly.         │
+│                 │ If page has <50 characters, falls back to OCR  │
+├─────────────────┼────────────────────────────────────────────────┤
+│ Images          │ Tesseract OCR with multi-language support:     │
+│ (PNG, JPG, etc) │ eng+urd+hin+ara+spa+fra+deu+chi_sim            │
+├─────────────────┼────────────────────────────────────────────────┤
+│ Word (.docx)    │ python-docx library extracts paragraphs        │
+│                 │ and tables                                     │
+├─────────────────┼────────────────────────────────────────────────┤
+│ Text (.txt)     │ Direct file read with UTF-8 encoding           │
+└─────────────────┴────────────────────────────────────────────────┘
+
+Language Detection (Character-based, no AI):
+- Arabic script (U+0600-U+06FF) → "ar"
+- Urdu-specific chars (ٹڈڑںھہیے) → "ur"  
+- Devanagari (U+0900-U+097F) → "hi"
+- Chinese (U+4E00-U+9FFF) → "zh"
+- Default → "en"
+
+================================================================================
+4. MULTI-AGENT AI SYSTEM
+================================================================================
+
+The project uses a MULTI-AGENT ARCHITECTURE where specialized AI agents 
+handle different analysis tasks. Each agent sends specific prompts to Gemini.
+
+File: apps/worker/src/agents/orchestrator.py
+
+--------------------------------------------------------------------------------
+AGENT 1: INGESTION AGENT
+--------------------------------------------------------------------------------
+File: apps/worker/src/agents/ingestion_agent.py
+Purpose: Document type classification
+
+What it does:
+1. Receives extracted text from document ingestion
+2. Sends first 3000 characters to Gemini for classification
+3. Returns document type with confidence score
+
+Prompt sent to Gemini:
+"Classify this legal document into one of these categories:
+- nda (Non-Disclosure Agreement)
+- employment (Employment Contract)
+- service_agreement (Service/Consulting Agreement)
+- vendor_contract (Vendor/Supplier Contract)
+- lease (Lease/Rental Agreement)
+- saas_agreement (SaaS/Software License)
+- partnership_agreement (Partnership Agreement)
+- loan_agreement (Loan/Credit Agreement)
+- freelance_contract (Freelance/Independent Contractor)
+- unknown (Cannot determine)"
+
+Response format:
+{
+    "document_type": "freelance_contract",
+    "confidence": 0.95,
+    "indicators": ["service agreement", "contractor", "payment terms"]
+}
+
+--------------------------------------------------------------------------------
+AGENT 2: CLAUSE EXTRACTOR AGENT
+--------------------------------------------------------------------------------
+File: apps/worker/src/agents/clause_extractor_agent.py
+Purpose: Extract 40+ specific clauses from contracts
+
+What it does:
+1. Receives full contract text and document type
+2. Sends to Gemini with detailed extraction prompt
+3. Returns structured JSON with all clause values
+
+Clauses extracted (40+ fields):
+- paymentTerms, paymentAmount, paymentSchedule
+- milestones, dueDates, deadlines
+- terminationNoticePeriod, terminationConditions
+- liabilityLimitations, liabilityCap
+- ipOwnership, workOwnership
+- confidentialityRequirements, confidentialityDuration
+- revisionCount, revisionTerms
+- governingLaw, jurisdiction
+- nonCompete, nonCompeteDuration, nonSolicit
+- disputeResolution, arbitrationClause
+- deliverables, scopeOfWork
+- refundRules, renewalTerms, autoRenewal
+- contractDuration, startDate, endDate
+- killFee, latePaymentPenalty
+- indemnification, forceMajeure
+- assignmentRights, amendmentProcess
+- noticeRequirements, warrantyTerms, insuranceRequirements
+
+Response format:
+{
+    "paymentTerms": "50% upfront, 50% on completion",
+    "paymentAmount": "$5,000 USD",
+    "terminationNoticePeriod": "7 days written notice",
+    "liabilityLimitations": "Unlimited liability",
+    "ipOwnership": "Client owns all work upon full payment",
+    ... (35+ more fields)
+}
+
+--------------------------------------------------------------------------------
+AGENT 3: RISK ENGINE AGENT
+--------------------------------------------------------------------------------
+File: apps/worker/src/agents/risk_engine_agent.py
+Purpose: Calculate risk score, find red flags, detect missing clauses
+
+This agent makes 4 separate AI calls:
+
+A) RISK SCORE CALCULATION
+   - Analyzes contract for risks to freelancer/service provider
+   - Returns score 0-100 with traffic light level
+   
+   Score ranges:
+   0-30  = Green (Safe)
+   31-60 = Yellow (Caution)
+   61-100 = Red (Dangerous)
+   
+   Response format:
+   {
+       "score": 75,
+       "level": "red",
+       "summary": "High risk contract with several concerning clauses",
+       "factors": [
+           {"factor": "Unlimited revisions clause", "impact": 20},
+           {"factor": "Unlimited liability", "impact": 25},
+           {"factor": "One-sided termination", "impact": 15}
+       ]
+   }
+
+B) RED FLAG DETECTION
+   Looks for dangerous patterns like:
+   - "unlimited revision" → scope creep risk
+   - "work for hire" → IP rights loss before payment
+   - "terminate at any time" → one-sided termination
+   - "full refund" → refund even after work delivered
+   - "no payment until" → payment withheld arbitrarily
+   - "exclusive" → prevents working with competitors
+   - "perpetual" → obligations that never expire
+   - "indemnify and hold harmless" → liable for client's issues
+   - "sole discretion" → unilateral decision power
+   - "waive" → waiving important rights
+   
+   Response format:
+   [
+       {
+           "id": "rf1",
+           "clauseText": "The Contractor will provide unlimited revisions",
+           "issue": "Unlimited revisions can lead to scope creep",
+           "severity": "red",
+           "explanation": "This clause allows endless changes without pay",
+           "location": "Section 3"
+       }
+   ]
+
+C) MISSING CLAUSE DETECTION
+   Checks for essential clauses based on document type:
+   
+   Freelance contracts should have:
+   - killFee, latePaymentPenalty, ipOwnership
+   - confidentialityRequirements, terminationNoticePeriod
+   - liabilityCap, scopeOfWork, revisionCount
+   - paymentSchedule, disputeResolution
+   
+   Response format:
+   [
+       {
+           "clauseName": "killFee",
+           "importance": "critical",
+           "description": "No cancellation fee if client terminates early",
+           "suggestedText": "If Client terminates before completion..."
+       }
+   ]
+
+D) JURISDICTION CHECK
+   Analyzes governing law and jurisdiction clauses
+   
+   Response format:
+   {
+       "governingLaw": "State of California",
+       "jurisdiction": "Los Angeles, California",
+       "isValid": true,
+       "warnings": ["Ensure you understand California contract law"],
+       "recommendations": ["Consider adding remote arbitration options"]
+   }
+
+--------------------------------------------------------------------------------
+AGENT 4: EXPLAINER AGENT
+--------------------------------------------------------------------------------
+File: apps/worker/src/agents/explainer_agent.py
+Purpose: Human-friendly explanations, chat, clause fixing, reports
+
+This agent handles 4 different tasks:
+
+A) SUMMARY GENERATION
+   Converts legal jargon to plain English
+   
+   Response format:
+   {
+       "bulletPoints": [
+           "This is a $5,000 web development contract",
+           "Payment is split 50/50 - half upfront, half on completion",
+           "WARNING: You must provide unlimited revisions"
+       ],
+       "obligations": [
+           "Design and develop company website",
+           "Provide unlimited revisions"
+       ],
+       "rights": [
+           "Receive $2,500 upfront payment",
+           "Terminate with 7 days notice"
+       ],
+       "paymentSummary": "Total $5,000 - $2,500 upfront, $2,500 on completion",
+       "mainRisks": [
+           "Unlimited revisions could mean endless unpaid work"
+       ]
+   }
+
+B) CHAT Q&A
+   Answers user questions about the contract
+   - Provides citations from the actual contract
+   - Suggests related clauses
+   - Offers follow-up questions
+   
+   Response format:
+   {
+       "answer": "Based on the contract, the client can terminate...",
+       "citations": ["The Client may terminate at any time without penalty"],
+       "relatedClauses": ["terminationConditions", "paymentTerms"],
+       "followUpQuestions": ["What happens to my payment if terminated?"]
+   }
+
+C) CLAUSE FIXER
+   Rewrites problematic clauses to protect the user
+   
+   Response format:
+   {
+       "originalClause": "The Contractor will provide unlimited revisions",
+       "fixedClause": "The Contractor will provide up to 3 rounds of revisions. Additional revisions will be billed at $50/hour.",
+       "explanation": "Limited revisions protect you from scope creep",
+       "negotiationWording": "I'd like to propose a small adjustment..."
+   }
+
+D) REPORT GENERATION
+   Prepares data for PDF export
+   - Compiles all analysis results
+   - Generates fixes for each red flag
+   - Structures data for ReportLab PDF generation
+
+================================================================================
+5. GEMINI API CLIENT
+================================================================================
+
+File: apps/worker/src/utils/gemini_client.py
+
+API Endpoint:
+POST https://generativelanguage.googleapis.com/v1beta/models/gemma-3-4b-it:generateContent
+
+Request Structure:
+{
+    "contents": [
+        {
+            "role": "user",
+            "parts": [{"text": "System: You are a contract analyzer..."}]
+        },
+        {
+            "role": "model",
+            "parts": [{"text": "Understood. I will follow these instructions."}]
+        },
+        {
+            "role": "user",
+            "parts": [{"text": "Analyze this contract..."}]
+        }
+    ],
+    "generationConfig": {
+        "temperature": 0.3,      // Lower = more deterministic
+        "maxOutputTokens": 8192,
+        "topP": 0.95,
+        "topK": 40
+    }
+}
+
+Headers:
+- Content-Type: application/json
+- X-goog-api-key: [API_KEY]
+
+Key Features:
+1. Retry Logic: Exponential backoff for rate limits (429 errors)
+2. JSON Cleaning: Strips markdown code blocks from responses
+3. Mock Mode: Returns test data when API quota exhausted
+4. Multi-turn Chat: Supports conversation history
+
+Temperature Settings by Task:
+- Document classification: 0.2 (very deterministic)
+- Clause extraction: 0.2 (precise extraction)
+- Risk analysis: 0.3 (balanced)
+- Missing clauses: 0.4 (some creativity for suggestions)
+- Summary: 0.5 (natural language)
+- Chat Q&A: 0.6 (conversational)
+- Clause fixing: 0.5 (balanced creativity)
+
+================================================================================
+6. COMPLETE ANALYSIS FLOW
+================================================================================
+
+Step-by-step process when user uploads a contract:
+
+1. USER UPLOADS FILE (contract.pdf)
+   │
+   ▼
+2. DOCUMENT INGESTION (No AI)
+   - PyMuPDF extracts text from PDF
+   - If scanned/image-based, Tesseract OCR kicks in
+   - Text is cleaned (remove extra whitespace, page numbers)
+   - Language detected via character analysis
+   │
+   ▼
+3. INGESTION AGENT → GEMINI
+   Prompt: "Classify this legal document..."
+   Response: {"document_type": "freelance_contract", "confidence": 0.95}
+   │
+   ▼
+4. CLAUSE EXTRACTOR AGENT → GEMINI
+   Prompt: "Extract ALL relevant clauses from this contract..."
+   Response: {40+ structured clause fields}
+   │
+   ▼
+5. RISK ENGINE AGENT → GEMINI (4 calls)
+   │
+   ├─→ Call 1: "Calculate risk score 0-100..."
+   │   Response: {"score": 75, "level": "red", "factors": [...]}
+   │
+   ├─→ Call 2: "Find red flags and dangerous clauses..."
+   │   Response: [{clauseText, issue, severity, explanation}...]
+   │
+   ├─→ Call 3: "Identify missing essential clauses..."
+   │   Response: [{clauseName, importance, suggestedText}...]
+   │
+   └─→ Call 4: "Check jurisdiction and governing law..."
+       Response: {governingLaw, jurisdiction, warnings}
+   │
+   ▼
+6. EXPLAINER AGENT → GEMINI
+   Prompt: "Create plain-English summary..."
+   Response: {bulletPoints, obligations, rights, mainRisks}
+   │
+   ▼
+7. RESULTS COMPILED
+   - All agent outputs combined into single analysis object
+   - Stored in SQLite database
+   - Cached in memory for fast access
+   │
+   ▼
+8. DISPLAYED IN UI
+   - Risk score with traffic light color
+   - Charts showing clause coverage
+   - Red flags list with "Get Fix" buttons
+   - Missing clauses with suggestions
+   - Chat interface for Q&A
+
+================================================================================
+7. PDF GENERATION (NO AI)
+================================================================================
+
+File: apps/worker/src/reports/pdf_generator.py
+Library: ReportLab
+
+Two types of PDFs generated:
+
+A) ANALYSIS REPORT
+   - Title page with document info
+   - Risk score section with color coding
+   - Executive summary
+   - Red flags with severity badges
+   - Missing clauses with importance levels
+   - Extracted clauses table
+   - Suggested fixes
+   - Jurisdiction information
+   - Disclaimer footer
+
+B) CORRECTED CONTRACT
+   - Original contract text with fixes applied
+   - Fixed clauses highlighted in green with [FIXED] marker
+   - Summary of all corrections at the end
+   - "CORRECTED CONTRACT" watermark
+
+================================================================================
+8. TECHNOLOGIES SUMMARY
+================================================================================
+
+┌─────────────────────┬────────────────────────────────────────────┐
+│ Component           │ Technology                                 │
+├─────────────────────┼────────────────────────────────────────────┤
+│ AI Model            │ Google Gemini (gemma-3-4b-it)              │
+│ AI API              │ Google Generative Language API (REST)      │
+│ PDF Text Extraction │ PyMuPDF (fitz)                             │
+│ OCR Engine          │ Tesseract (pytesseract)                    │
+│ Image Processing    │ Pillow (PIL)                               │
+│ Word Doc Parsing    │ python-docx                                │
+│ PDF Generation      │ ReportLab                                  │
+│ API Framework       │ FastAPI (Python)                           │
+│ Database            │ SQLite                                     │
+│ Backend Proxy       │ Express.js (Node.js)                       │
+│ Frontend            │ Next.js 14 + React 18                      │
+│ UI Components       │ shadcn/ui + Tailwind CSS                   │
+│ Charts              │ Recharts                                   │
+│ HTTP Client         │ httpx (Python), axios (JS)                 │
+└─────────────────────┴────────────────────────────────────────────┘
+
+================================================================================
+9. API ENDPOINTS
+================================================================================
+
+Worker Service (Python - Port 8000):
+- POST /upload              - Upload document
+- POST /analyze/{id}        - Run AI analysis
+- GET  /analysis/{id}       - Get analysis results
+- POST /chat                - Chat with document
+- POST /fix-clause          - Fix problematic clause
+- GET  /report/{id}         - Generate analysis PDF
+- POST /corrected-contract/{id} - Generate corrected contract PDF
+- GET  /documents           - List all documents
+- GET  /documents/{id}/content - Get document text
+- GET  /documents/{id}/file - Download original file
+- DELETE /documents/{id}    - Delete document
+
+Backend Proxy (Node.js - Port 3001):
+- All /api/* routes proxy to Worker service
+
+Frontend (Next.js - Port 3000):
+- /dashboard               - Overview dashboard
+- /documents               - Document list
+- /documents/[id]          - Document analysis view
+- /documents/new           - Upload new document
+
+================================================================================
+10. KEY FILES REFERENCE
+================================================================================
+
+AI/ML Components:
+- apps/worker/src/config.py                    - API keys, model config
+- apps/worker/src/utils/gemini_client.py       - Gemini API client
+- apps/worker/src/agents/orchestrator.py       - Multi-agent coordinator
+- apps/worker/src/agents/base_agent.py         - Base agent class
+- apps/worker/src/agents/ingestion_agent.py    - Document classification
+- apps/worker/src/agents/clause_extractor_agent.py - Clause extraction
+- apps/worker/src/agents/risk_engine_agent.py  - Risk analysis
+- apps/worker/src/agents/explainer_agent.py    - Summaries, chat, fixes
+
+Document Processing:
+- apps/worker/src/ocr/document_ingestion.py    - Text extraction, OCR
+
+API Layer:
+- apps/worker/src/api/main.py                  - FastAPI endpoints
+- apps/backend/src/index.ts                    - Express proxy
+
+Database:
+- apps/worker/src/db.py                        - SQLite operations
+- apps/worker/docintel.db                      - SQLite database file
+
+PDF Generation:
+- apps/worker/src/reports/pdf_generator.py     - ReportLab PDF creation
+
+Frontend:
+- apps/frontend/src/lib/api.ts                 - API client functions
+- apps/frontend/src/hooks/useAnalysis.ts       - Analysis state management
+- apps/frontend/src/app/documents/[id]/page.tsx - Analysis UI
+
+================================================================================
+                              END OF DOCUMENTATION
+================================================================================

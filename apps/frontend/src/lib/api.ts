@@ -151,4 +151,26 @@ export async function deleteDocument(documentId: string): Promise<void> {
   await api.delete(`/api/documents/${documentId}`);
 }
 
+// Get document content
+export interface DocumentContent {
+  content: string;
+  mimeType: string;
+  fileName: string;
+}
+
+export async function getDocumentContent(documentId: string): Promise<DocumentContent> {
+  const response = await api.get(`/api/documents/${documentId}/content`);
+  return response.data;
+}
+
+// Download corrected contract PDF
+export async function downloadCorrectedContract(documentId: string, fixes?: any[]): Promise<Blob> {
+  const response = await api.post(
+    `/api/documents/${documentId}/corrected`,
+    { fixes },
+    { responseType: 'blob' }
+  );
+  return response.data;
+}
+
 export default api;

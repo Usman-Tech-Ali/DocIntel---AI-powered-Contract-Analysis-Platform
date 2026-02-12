@@ -18,6 +18,7 @@ import { Header } from "@/components/layout/Header";
 import { useAnalysis } from "@/hooks/useAnalysis";
 import { ChatPanel, UploadZone } from "@/components/analysis";
 import { cn } from "@/lib/utils";
+import { getDocumentContent } from "@/lib/api";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
   XAxis, YAxis, Tooltip,
@@ -59,22 +60,36 @@ const RiskIndicator = ({ score, level }: { score: number; level: string }) => {
 export default function DocumentAnalysisPage() {
   const params = useParams();
   const documentId = params.id as string;
-  const [activeView, setActiveView] = useState<"overview" | "clauses" | "issues" | "chat">("overview");
+  const [activeView, setActiveView] = useState<"overview" | "document" | "clauses" | "issues" | "chat">("overview");
   const [isNewUpload, setIsNewUpload] = useState(documentId === "new");
   const [clauseSearch, setClauseSearch] = useState("");
   const [fixResult, setFixResult] = useState<{ issue: string; fixed: string; explanation: string; negotiation?: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [documentContent, setDocumentContent] = useState<string | null>(null);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
 
   const {
     isUploading, isAnalyzing, isChatting, isFixing, error, analysis,
-    chatHistory, upload, analyze, fetchAnalysis, chat, fix, downloadPdf, clearChat,
+    chatHistory, upload, analyze, fetchAnalysis, chat, fix, downloadPdf, downloadCorrected, clearChat,
   } = useAnalysis();
+  const [isDownloadingCorrected, setIsDownloadingCorrected] = useState(false);
 
   useEffect(() => {
     if (documentId && documentId !== "new") {
       fetchAnalysis(documentId).catch(() => setIsNewUpload(true));
     }
   }, [documentId, fetchAnalysis]);
+
+  // Load document content when switching to document view
+  useEffect(() => {
+    if (activeView === "document" && !documentContent && !isLoadingContent && documentId !== "new") {
+      setIsLoadingContent(true);
+      getDocumentContent(documentId)
+        .then(data => setDocumentContent(data.content))
+        .catch(() => setDocumentContent(null))
+        .finally(() => setIsLoadingContent(false));
+    }
+  }, [activeView, documentId, documentContent, isLoadingContent]);
 
   const handleUpload = async (file: File) => {
     const result = await upload(file);
@@ -205,7 +220,7 @@ export default function DocumentAnalysisPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {(["overview", "clauses", "issues", "chat"] as const).map((v) => (
+              {(["overview", "document", "clauses", "issues", "chat"] as const).map((v) => (
                 <Button
                   key={v}
                   variant={activeView === v ? "default" : "ghost"}
@@ -218,7 +233,27 @@ export default function DocumentAnalysisPage() {
               ))}
               <div className="w-px h-6 bg-border mx-1" />
               <Button onClick={downloadPdf} size="sm" variant="outline">
-                <Download className="h-4 w-4 mr-2" /> Export PDF
+                <Download className="h-4 w-4 mr-2" /> Analysis Report
+              </Button>
+              <Button 
+                onClick={async () => {
+                  setIsDownloadingCorrected(true);
+                  try {
+                    await downloadCorrected();
+                  } finally {
+                    setIsDownloadingCorrected(false);
+                  }
+                }} 
+                size="sm" 
+                variant="default"
+                disabled={isDownloadingCorrected}
+              >
+                {isDownloadingCorrected ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FileText className="h-4 w-4 mr-2" />
+                )}
+                {isDownloadingCorrected ? "Generating..." : "Corrected Contract"}
               </Button>
             </div>
           </div>
@@ -375,6 +410,71 @@ export default function DocumentAnalysisPage() {
             </>
           )}
 
+          {/* DOCUMENT VIEW */}
+          {activeView === "document" && (
+            <Card className="border-0 shadow-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Original Document</CardTitle>
+                    <CardDescription>View the original contract</CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {documentContent && (
+                      <Button variant="outline" size="sm" onClick={() => handleCopy(documentContent)}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        {copied ? "Copied!" : "Copy Text"}
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/documents/${documentId}/file`} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download Original
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingContent ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : documentContent ? (
+                  <div className="bg-secondary/30 rounded-lg p-6 max-h-[600px] overflow-auto">
+                    <pre className="text-sm whitespace-pre-wrap font-mono leading-relaxed">{documentContent}</pre>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <FileText className="h-10 w-10 mx-auto text-muted-foreground/40 mb-3" />
+                    <p className="text-sm text-muted-foreground mb-4">Click below to load the document text or download the original file</p>
+                    <div className="flex gap-3 justify-center">
+                      <Button variant="outline" size="sm" onClick={async () => {
+                        setIsLoadingContent(true);
+                        try {
+                          const data = await getDocumentContent(documentId);
+                          setDocumentContent(data.content);
+                        } catch {
+                          setDocumentContent(null);
+                        } finally {
+                          setIsLoadingContent(false);
+                        }
+                      }}>
+                        <FileText className="h-4 w-4 mr-2" />
+                        Load Text
+                      </Button>
+                      <Button variant="default" size="sm" asChild>
+                        <a href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/documents/${documentId}/file`} target="_blank" rel="noopener noreferrer">
+                          <Download className="h-4 w-4 mr-2" />
+                          View/Download Original
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* CLAUSES */}
           {activeView === "clauses" && (

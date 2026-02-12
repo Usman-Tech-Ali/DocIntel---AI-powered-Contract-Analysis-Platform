@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { FileText, Plus, Trash2, Loader2, Search } from "lucide-react";
+import { FileText, Plus, Trash2, Loader2, Search, Upload, Clock, Shield, MoreVertical, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { listDocuments, deleteDocument } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 interface Document {
   id: string;
@@ -19,10 +22,25 @@ interface Document {
   riskScore?: number;
 }
 
+const StatusBadge = ({ status }: { status: string }) => {
+  const styles: Record<string, string> = {
+    analyzed: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    processing: "bg-blue-100 text-blue-700 border-blue-200",
+    uploaded: "bg-slate-100 text-slate-700 border-slate-200",
+    failed: "bg-red-100 text-red-700 border-red-200",
+  };
+  return (
+    <span className={cn("text-xs px-2.5 py-1 rounded-full border font-medium capitalize", styles[status] || styles.uploaded)}>
+      {status}
+    </span>
+  );
+};
+
 export default function DocumentsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadDocuments();
@@ -42,13 +60,18 @@ export default function DocumentsPage() {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm("Delete this document?")) {
-      try {
-        await deleteDocument(id);
-        setDocuments((docs) => docs.filter((d) => d.id !== id));
-      } catch (error) {
-        console.error("Failed to delete document:", error);
-      }
+    
+    if (!confirm("Are you sure you want to delete this document?")) return;
+    
+    setDeletingId(id);
+    try {
+      await deleteDocument(id);
+      setDocuments(documents.filter(doc => doc.id !== id));
+    } catch (error) {
+      console.error("Failed to delete document:", error);
+      alert("Failed to delete document");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -129,8 +152,18 @@ export default function DocumentsPage() {
                         )}
                       </td>
                       <td className="p-3">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => handleDelete(doc.id, e)}>
-                          <Trash2 className="h-4 w-4 text-muted-foreground" />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={(e) => handleDelete(doc.id, e)}
+                          disabled={deletingId === doc.id}
+                        >
+                          {deletingId === doc.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </Button>
                       </td>
                     </tr>
