@@ -191,6 +191,67 @@ app.delete('/api/documents/:id', async (req, res) => {
   }
 });
 
+// Get document content
+app.get('/api/documents/:id/content', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await axios.get(`${WORKER_URL}/documents/${id}/content`);
+    res.json(response.data);
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(500).json({ error: 'Failed to get document content' });
+  }
+});
+
+// Get original document file
+app.get('/api/documents/:id/file', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const response = await axios.get(`${WORKER_URL}/documents/${id}/file`, {
+      responseType: 'stream'
+    });
+    
+    // Forward headers
+    res.setHeader('Content-Type', response.headers['content-type'] || 'application/octet-stream');
+    if (response.headers['content-disposition']) {
+      res.setHeader('Content-Disposition', response.headers['content-disposition']);
+    }
+    
+    response.data.pipe(res);
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    res.status(500).json({ error: 'Failed to get document file' });
+  }
+});
+
+// Generate corrected contract PDF
+app.post('/api/documents/:id/corrected', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fixes } = req.body;
+
+    const response = await axios.post(
+      `${WORKER_URL}/corrected-contract/${id}`,
+      fixes || [],
+      { responseType: 'stream' }
+    );
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=corrected-contract-${id.slice(0, 8)}.pdf`);
+    response.data.pipe(res);
+  } catch (error: any) {
+    console.error('Corrected contract error:', error.message);
+    if (error.response?.status === 404) {
+      return res.status(404).json({ error: 'Document or analysis not found' });
+    }
+    res.status(500).json({ error: 'Failed to generate corrected contract' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 DocIntel Backend running on port ${PORT}`);
 });
